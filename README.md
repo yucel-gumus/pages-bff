@@ -18,3 +18,5 @@ Server-side proxy for **GeoGemini**, **speech-to-text**, and **gemini-mcp-maps**
 | `/api/maps/chat` | `/api/chat` (SSE) |
 
 Static apps use `VITE_BFF_URL=https://pages-bff.vercel.app` (no API keys in bundle).
+
+<!-- vercel-git-deploy -->
