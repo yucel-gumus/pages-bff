@@ -6,7 +6,7 @@ Server-side proxy for **GeoGemini**, **speech-to-text**, and **gemini-mcp-maps**
 
 - `AI_API_URL` — `https://api.yucelgumus.dev`
 - `GATEWAY_CLIENT_API_KEY` — gateway client key (server only)
-- `ALLOWED_ORIGINS` — comma-separated, e.g. `https://yucel-gumus.github.io`
+- `PAGES_BFF_ALLOWED_ORIGINS` — comma-separated, e.g. `https://yucel-gumus.github.io`
 
 ## Routes
 
