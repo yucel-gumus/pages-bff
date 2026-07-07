@@ -1,4 +1,4 @@
-const DEFAULT_GATEWAY_URL = 'https://api.yucelgumus.dev';
+const DEFAULT_GATEWAY_URL = 'https://python-backend-270384591051.europe-west3.run.app';
 
 const DEFAULT_PAGES_ORIGINS = [
   'https://yucel-gumus.github.io',
