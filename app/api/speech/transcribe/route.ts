@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { corsPreflight, gatewayFetch, jsonWithCors } from '@/lib/gateway';
 
 export async function OPTIONS(req: NextRequest) {
@@ -14,7 +14,12 @@ export async function POST(req: NextRequest) {
     });
     const data = await res.json();
     return jsonWithCors(req, data, res.status);
-  } catch {
-    return jsonWithCors(req, { success: false, error: 'BFF error' }, 500);
+  } catch (error) {
+    console.error('[POST /api/speech/transcribe] Error:', error);
+    return jsonWithCors(
+      req,
+      { success: false, error: 'Transcription service unavailable' },
+      502
+    );
   }
 }

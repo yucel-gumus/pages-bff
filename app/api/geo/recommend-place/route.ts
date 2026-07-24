@@ -14,7 +14,12 @@ export async function POST(req: NextRequest) {
     });
     const data = await res.json();
     return jsonWithCors(req, data, res.status);
-  } catch {
-    return jsonWithCors(req, { success: false, error: 'BFF error' }, 500);
+  } catch (error) {
+    console.error('[POST /api/geo/recommend-place] Error:', error);
+    return jsonWithCors(
+      req,
+      { success: false, error: 'Place recommendation service unavailable' },
+      502
+    );
   }
 }

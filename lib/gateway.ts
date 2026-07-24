@@ -24,7 +24,10 @@ export function getGatewayBaseUrl(): string {
 
 export function getGatewayClientApiKey(): string {
   const key = process.env.GATEWAY_CLIENT_API_KEY || process.env.CLIENT_API_KEY || '';
-  if (!key) throw new Error('GATEWAY_CLIENT_API_KEY is not configured.');
+  if (!key) {
+    console.error('[gateway] Missing GATEWAY_CLIENT_API_KEY environment variable.');
+    throw new Error('GATEWAY_CLIENT_API_KEY is not configured.');
+  }
   return key;
 }
 
@@ -34,7 +37,14 @@ export async function gatewayFetch(path: string, init: RequestInit = {}): Promis
     headers.set('Content-Type', 'application/json');
   }
   headers.set('X-API-Key', getGatewayClientApiKey());
-  return fetch(`${getGatewayBaseUrl()}${path}`, { ...init, headers });
+
+  const targetUrl = `${getGatewayBaseUrl()}${path}`;
+  try {
+    return await fetch(targetUrl, { ...init, headers });
+  } catch (error) {
+    console.error(`[gatewayFetch] Connection error to ${targetUrl}:`, error);
+    throw error;
+  }
 }
 
 export function corsHeadersForRequest(req: Request): Record<string, string> {
@@ -46,7 +56,7 @@ export function corsHeadersForRequest(req: Request): Record<string, string> {
   return {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, X-API-Key, Authorization',
     Vary: 'Origin',
   };
 }
