@@ -1,6 +1,8 @@
 const DEFAULT_GATEWAY_URL = 'https://python-backend-270384591051.europe-west3.run.app';
 
 const DEFAULT_PAGES_ORIGINS = [
+  'https://www.yucelgumus.dev',
+  'https://yucelgumus.dev',
   'https://yucel-gumus.github.io',
   'http://127.0.0.1:5173',
   'http://localhost:5173',
@@ -51,7 +53,8 @@ export function corsHeadersForRequest(req: Request): Record<string, string> {
   const origin = req.headers.get('origin');
   if (!origin) return {};
   const allowed = allowedOrigins();
-  const match = allowed.includes(origin);
+  const isVercelDomain = origin.endsWith('.vercel.app');
+  const match = allowed.includes('*') || allowed.includes(origin) || isVercelDomain;
   if (!match) return {};
   return {
     'Access-Control-Allow-Origin': origin,
