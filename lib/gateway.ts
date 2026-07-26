@@ -54,7 +54,8 @@ export function corsHeadersForRequest(req: Request): Record<string, string> {
   if (!origin) return {};
   const allowed = allowedOrigins();
   const isVercelDomain = origin.endsWith('.vercel.app');
-  const match = allowed.includes('*') || allowed.includes(origin) || isVercelDomain;
+  const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+  const match = allowed.includes('*') || allowed.includes(origin) || isVercelDomain || isLocalhost;
   if (!match) return {};
   return {
     'Access-Control-Allow-Origin': origin,
