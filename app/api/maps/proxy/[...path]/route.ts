@@ -33,6 +33,14 @@ async function handleProxy(req: NextRequest, resolvedParams: { path?: string[] }
   const pathSegments = resolvedParams.path || [];
   const pathStr = pathSegments.join('/');
 
+  // Instant 204 No Content for Google Maps CSP test beacons (gen_204)
+  if (pathStr.includes('gen_204')) {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeadersForRequest(req),
+    });
+  }
+
   const serverKey =
     process.env.GOOGLE_MAPS_SERVER_KEY ||
     process.env.GOOGLE_MAPS_API_KEY ||
