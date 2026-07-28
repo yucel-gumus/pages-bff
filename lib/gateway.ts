@@ -54,13 +54,21 @@ export function corsHeadersForRequest(req: Request): Record<string, string> {
   if (!origin) return {};
   const allowed = allowedOrigins();
   const isVercelDomain = origin.endsWith('.vercel.app');
+  const isGithubPages = origin.endsWith('.github.io');
   const isLocalhost = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-  const match = allowed.includes('*') || allowed.includes(origin) || isVercelDomain || isLocalhost;
+  const match = allowed.includes('*') || allowed.includes(origin) || isVercelDomain || isGithubPages || isLocalhost;
   if (!match) return {};
+
+  const reqHeaders = req.headers.get('access-control-request-headers');
+  const allowedHeaders = reqHeaders
+    ? reqHeaders
+    : 'Content-Type, X-API-Key, Authorization, X-Goog-Api-Key, X-Goog-Maps-Api-Signature, X-Goog-Maps-Api-Salt, X-Goog-Maps-Session-Id, X-Goog-Gmp-Client-Signals, X-User-Agent, *';
+
   return {
     'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, X-API-Key, Authorization',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, DELETE',
+    'Access-Control-Allow-Headers': allowedHeaders,
+    'Access-Control-Allow-Credentials': 'true',
     Vary: 'Origin',
   };
 }

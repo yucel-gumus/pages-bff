@@ -44,7 +44,7 @@ async function handleProxy(req: NextRequest, resolvedParams: { path?: string[] }
 
   // Construct target Google Maps URL
   let targetUrl = `https://maps.googleapis.com/maps/api/${pathStr}?${searchParams.toString()}`;
-  if (pathStr.startsWith('$rpc') || pathStr.startsWith('mapsjs')) {
+  if (pathStr.startsWith('$rpc') || pathStr.startsWith('mapsjs') || pathStr.startsWith('gen_204')) {
     targetUrl = `https://maps.googleapis.com/${pathStr}?${searchParams.toString()}`;
   }
 
