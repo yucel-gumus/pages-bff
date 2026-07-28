@@ -35,9 +35,13 @@ async function handleProxy(req: NextRequest, resolvedParams: { path?: string[] }
 
   // Instant 204 No Content for Google Maps CSP test beacons (gen_204)
   if (pathStr.includes('gen_204')) {
+    const origin = req.headers.get('origin') || '*';
     return new Response(null, {
       status: 204,
-      headers: corsHeadersForRequest(req),
+      headers: {
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      },
     });
   }
 
