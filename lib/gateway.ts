@@ -59,7 +59,7 @@ export function corsHeadersForRequest(req: Request): Record<string, string> {
   if (!match) return {};
   return {
     'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, X-API-Key, Authorization',
     Vary: 'Origin',
   };
