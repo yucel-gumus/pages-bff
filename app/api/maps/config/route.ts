@@ -10,9 +10,16 @@ export async function OPTIONS(req: NextRequest) {
  * Returns browser-scoped restricted Maps API Key.
  */
 export async function GET(req: NextRequest) {
-  const mapsKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || process.env.GOOGLE_MAPS_BROWSER_KEY || '';
-  const mapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || process.env.GOOGLE_MAPS_MAP_ID || 'DEMO_MAP_ID';
-  
+  const mapsKey =
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
+    process.env.GOOGLE_MAPS_BROWSER_KEY ||
+    process.env.GOOGLE_MAPS_SERVER_KEY ||
+    '';
+  const mapId =
+    process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ||
+    process.env.GOOGLE_MAPS_MAP_ID ||
+    'DEMO_MAP_ID';
+
   return jsonWithCors(req, {
     success: true,
     mapsApiKey: mapsKey,
