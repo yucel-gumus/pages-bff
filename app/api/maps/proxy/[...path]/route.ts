@@ -2,7 +2,17 @@ import { NextRequest } from 'next/server';
 import { corsPreflight, corsHeadersForRequest } from '@/lib/gateway';
 
 export async function OPTIONS(req: NextRequest) {
-  return corsPreflight(req);
+  const origin = req.headers.get('origin') || '*';
+  const reqHeaders = req.headers.get('access-control-request-headers') || '*';
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, DELETE, PATCH',
+      'Access-Control-Allow-Headers': reqHeaders,
+      'Access-Control-Allow-Credentials': 'true',
+    },
+  });
 }
 
 export async function GET(
