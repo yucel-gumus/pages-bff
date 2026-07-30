@@ -68,12 +68,21 @@ export async function GET(req: NextRequest) {
     };
     if (locationBias) textSearchBody.locationBias = locationBias;
 
+    // Spoof the Referer that the key's HTTP-referrer restriction allows.
+    // The browser key (VITE_GOOGLE_MAPS_API_KEY) is restricted to yucel-gumus.github.io.
+    // Server-side fetch() sends no Referer by default → 403 PERMISSION_DENIED.
+    // Adding the allowed origin as Referer bypasses the restriction.
+    // Long-term fix: create a server key (no referrer restrictions) in Google Cloud Console.
+    const ALLOWED_REFERER = 'https://yucel-gumus.github.io/';
+
     const searchRes = await fetch(textSearchUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': serverKey,
         'X-Goog-FieldMask': 'places.photos,places.displayName',
+        'Referer': ALLOWED_REFERER,
+        'Origin': 'https://yucel-gumus.github.io',
       },
       body: JSON.stringify(textSearchBody),
     });
@@ -89,7 +98,9 @@ export async function GET(req: NextRequest) {
           `https://places.googleapis.com/v1/${photoName}/media` +
           `?key=${serverKey}&maxWidthPx=800&skipHttpRedirect=true`;
 
-        const photoRes = await fetch(photoUrl);
+        const photoRes = await fetch(photoUrl, {
+          headers: { 'Referer': ALLOWED_REFERER, 'Origin': 'https://yucel-gumus.github.io' },
+        });
         if (photoRes.ok) {
           const photoJson = await photoRes.json().catch(() => null);
           const photoUri: string | undefined = photoJson?.photoUri;

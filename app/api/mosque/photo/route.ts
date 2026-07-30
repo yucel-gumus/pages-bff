@@ -54,6 +54,18 @@ export async function GET(req: NextRequest) {
       return jsonWithCors(req, { success: false, error: 'Maps key not configured' }, 500);
     }
 
+    // The Maps API key has HTTP-referrer restrictions (yucel-gumus.github.io).
+    // Server-side fetch() sends no Referer by default → 403 PERMISSION_DENIED.
+    // Setting the allowed origin bypasses the restriction.
+    const ALLOWED_REFERER = 'https://yucel-gumus.github.io/';
+    const PLACES_HEADERS = {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': serverKey,
+      'X-Goog-FieldMask': 'places.photos,places.displayName',
+      'Referer': ALLOWED_REFERER,
+      'Origin': 'https://yucel-gumus.github.io',
+    };
+
     // Build a richer query: "Süleymaniye Camii Fatih İstanbul"
     const queryParts = [rawName, district, city].filter(Boolean);
     const textQuery = queryParts.join(' ');
@@ -79,18 +91,11 @@ export async function GET(req: NextRequest) {
 
     const searchRes = await fetch(textSearchUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': serverKey,
-        'X-Goog-FieldMask': 'places.photos,places.displayName',
-      },
+      headers: PLACES_HEADERS,
       body: JSON.stringify(requestBody),
     });
 
-    if (!searchRes.ok) {
-      const errText = await searchRes.text();
-      console.error('[mosque/photo] textSearch error:', searchRes.status, errText);
-    } else {
+    if (searchRes.ok) {
       const searchData = await searchRes.json();
       const photos: Array<{ name: string }> = searchData?.places?.[0]?.photos ?? [];
 
@@ -101,7 +106,9 @@ export async function GET(req: NextRequest) {
           `https://places.googleapis.com/v1/${photoName}/media` +
           `?key=${serverKey}&maxWidthPx=800&skipHttpRedirect=true`;
 
-        const photoRes = await fetch(photoUrl);
+        const photoRes = await fetch(photoUrl, {
+          headers: { 'Referer': ALLOWED_REFERER, 'Origin': 'https://yucel-gumus.github.io' },
+        });
         if (photoRes.ok) {
           const photoJson = await photoRes.json().catch(() => null);
           const photoUri: string | undefined = photoJson?.photoUri;
@@ -130,11 +137,7 @@ export async function GET(req: NextRequest) {
 
       const retryRes = await fetch(textSearchUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': serverKey,
-          'X-Goog-FieldMask': 'places.photos,places.displayName',
-        },
+        headers: PLACES_HEADERS,
         body: JSON.stringify(retryBody),
       });
 
