@@ -61,12 +61,20 @@ async function handleProxy(req: NextRequest, resolvedParams: { path?: string[] }
   const reqUrl = new URL(req.url);
   const searchParams = new URLSearchParams(reqUrl.searchParams);
 
-  // Remove any client key parameter if passed, substitute with server secret key
-  searchParams.set('key', serverKey);
+  // gRPC-Web endpoints ($rpc/*) do NOT accept key= query param — header-only auth.
+  // For all other paths, inject the server key into the query string.
+  const isGrpcPath = pathStr.startsWith('$rpc');
+
+  if (!isGrpcPath) {
+    searchParams.set('key', serverKey);
+  } else {
+    // Strip any client-leaked key from gRPC requests
+    searchParams.delete('key');
+  }
 
   // Construct target Google Maps URL
   let targetUrl = `https://maps.googleapis.com/maps/api/${pathStr}?${searchParams.toString()}`;
-  if (pathStr.startsWith('$rpc') || pathStr.startsWith('mapsjs') || pathStr.startsWith('gen_204')) {
+  if (isGrpcPath || pathStr.startsWith('mapsjs') || pathStr.startsWith('gen_204')) {
     targetUrl = `https://maps.googleapis.com/${pathStr}?${searchParams.toString()}`;
   }
 
@@ -105,9 +113,10 @@ async function handleProxy(req: NextRequest, resolvedParams: { path?: string[] }
 
     let dataBuffer: ArrayBuffer | string = await googleRes.arrayBuffer();
 
-    // If JavaScript file, dynamically rewrite maps.googleapis.com to pages-bff proxy URL
+    // If JavaScript file, dynamically rewrite maps.googleapis.com to pages-bff proxy URL.
+    // SKIP rewriting for gRPC-Web paths — their bodies are binary Protocol Buffers.
     const contentType = googleRes.headers.get('content-type') || '';
-    if (contentType.includes('javascript') || contentType.includes('json')) {
+    if (!isGrpcPath && (contentType.includes('javascript') || contentType.includes('json'))) {
       const decoder = new TextDecoder('utf-8');
       let code = decoder.decode(dataBuffer);
 
