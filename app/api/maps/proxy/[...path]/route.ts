@@ -78,8 +78,9 @@ async function handleProxy(req: NextRequest, resolvedParams: { path?: string[] }
     }
   });
 
+  const clientReferer = req.headers.get('referer') || req.headers.get('origin') || 'https://pages-bff.vercel.app/';
   outboundHeaders.set('x-goog-api-key', serverKey);
-  outboundHeaders.set('referer', 'https://pages-bff.vercel.app/');
+  outboundHeaders.set('referer', clientReferer);
   if (!outboundHeaders.has('user-agent')) {
     outboundHeaders.set('user-agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36');
   }
