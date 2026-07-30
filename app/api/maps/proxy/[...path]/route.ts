@@ -61,16 +61,10 @@ async function handleProxy(req: NextRequest, resolvedParams: { path?: string[] }
   const reqUrl = new URL(req.url);
   const searchParams = new URLSearchParams(reqUrl.searchParams);
 
-  // gRPC-Web endpoints ($rpc/*) do NOT accept key= query param — header-only auth.
-  // For all other paths, inject the server key into the query string.
-  const isGrpcPath = pathStr.startsWith('$rpc');
+  // Ensure server key is set for all requests (including $rpc internal services)
+  searchParams.set('key', serverKey);
 
-  if (!isGrpcPath) {
-    searchParams.set('key', serverKey);
-  } else {
-    // Strip any client-leaked key from gRPC requests
-    searchParams.delete('key');
-  }
+  const isGrpcPath = pathStr.startsWith('$rpc');
 
   // Construct target Google Maps URL
   let targetUrl = `https://maps.googleapis.com/maps/api/${pathStr}?${searchParams.toString()}`;
