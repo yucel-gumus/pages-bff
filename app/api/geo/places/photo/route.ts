@@ -78,45 +78,39 @@ export async function GET(req: NextRequest) {
       body: JSON.stringify(textSearchBody),
     });
 
-    if (!searchRes.ok) {
-      const errText = await searchRes.text();
-      console.error('[geo/places/photo] textSearch error:', searchRes.status, errText);
-      return jsonWithCors(req, { success: false, error: 'Place search failed' }, 502);
-    }
+    if (searchRes.ok) {
+      const searchData = await searchRes.json();
+      const photos: Array<{ name: string }> = searchData?.places?.[0]?.photos ?? [];
 
-    const searchData = await searchRes.json();
-    const photos: Array<{ name: string }> = searchData?.places?.[0]?.photos ?? [];
+      if (photos.length > 0) {
+        // ── Step 2: Fetch photo bytes via Places Photo Media API ───────────────
+        const photoName = photos[0].name;
+        const photoUrl =
+          `https://places.googleapis.com/v1/${photoName}/media` +
+          `?key=${serverKey}&maxWidthPx=800&skipHttpRedirect=true`;
 
-    if (photos.length === 0) {
-      // ── Fallback: Wikipedia image ─────────────────────────────────────────
-      const wikiImg = await fetchWikipediaImage(name);
-      if (wikiImg) {
-        return await streamExternalImage(wikiImg, cors);
+        const photoRes = await fetch(photoUrl);
+        if (photoRes.ok) {
+          const photoJson = await photoRes.json().catch(() => null);
+          const photoUri: string | undefined = photoJson?.photoUri;
+          if (photoUri) {
+            return await streamExternalImage(photoUri, cors);
+          }
+        }
       }
-      return jsonWithCors(req, { success: false, error: 'No photo found' }, 404);
+    } else {
+      const errText = await searchRes.text();
+      console.warn('[geo/places/photo] Places API error:', searchRes.status, errText.slice(0, 200));
+      // Do NOT return here — fall through to Wikipedia fallback
     }
 
-    // ── Step 2: Fetch photo bytes via Places Photo Media API ─────────────────
-    const photoName = photos[0].name; // e.g. "places/xxx/photos/yyy"
-    const photoUrl =
-      `https://places.googleapis.com/v1/${photoName}/media` +
-      `?key=${serverKey}&maxWidthPx=800&skipHttpRedirect=true`;
-
-    const photoRes = await fetch(photoUrl);
-    if (!photoRes.ok) {
-      console.error('[geo/places/photo] photo fetch error:', photoRes.status);
-      return jsonWithCors(req, { success: false, error: 'Photo fetch failed' }, 502);
+    // ── Wikipedia fallback: TR → EN (always runs if Places API failed or returned no photos) ──
+    const wikiImg = await fetchWikipediaImage(name);
+    if (wikiImg) {
+      return await streamExternalImage(wikiImg, cors);
     }
 
-    // Places media API returns JSON with photoUri when skipHttpRedirect=true
-    const photoJson = await photoRes.json().catch(() => null);
-    const photoUri: string | undefined = photoJson?.photoUri;
-
-    if (!photoUri) {
-      return jsonWithCors(req, { success: false, error: 'No photo URI in response' }, 502);
-    }
-
-    return await streamExternalImage(photoUri, cors);
+    return jsonWithCors(req, { success: false, error: 'No photo found' }, 404);
   } catch (err) {
     console.error('[GET /api/geo/places/photo] Unhandled error:', err);
     return jsonWithCors(req, { success: false, error: 'Photo service unavailable' }, 502);
