@@ -81,8 +81,20 @@ async function handleProxy(req: NextRequest, resolvedParams: { path?: string[] }
   });
 
   const clientReferer = req.headers.get('referer') || req.headers.get('origin') || 'https://pages-bff.vercel.app/';
+  let clientOrigin = req.headers.get('origin');
+  if (!clientOrigin && clientReferer) {
+    try {
+      clientOrigin = new URL(clientReferer).origin;
+    } catch {
+      clientOrigin = 'https://yucel-gumus.github.io';
+    }
+  }
+
   outboundHeaders.set('x-goog-api-key', serverKey);
   outboundHeaders.set('referer', clientReferer);
+  if (clientOrigin) {
+    outboundHeaders.set('origin', clientOrigin);
+  }
   if (!outboundHeaders.has('user-agent')) {
     outboundHeaders.set('user-agent', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36');
   }
