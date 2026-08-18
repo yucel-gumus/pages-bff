@@ -1,102 +1,123 @@
-# 🛡️ pages-bff (Secure Backend-for-Frontend Gateway Proxy)
+# ⚡ Pages BFF - Unified Backend-for-Frontend API Gateway
 
-pages-bff; GitHub Pages üzerinde barındırılan statik Tek Sayfa Uygulamalarının (SPA), API anahtarlarını tarayıcı tarafına (client bundle) ifşa etmeden merkezi yapay zeka sunucusu (Gemini Gateway) ile güvenli bir şekilde iletişim kurmasını sağlayan, **Next.js 15 & React 19** tabanlı bir **Backend-for-Frontend (BFF)** proxy uygulamasıdır.
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Next.js 15](https://img.shields.io/badge/Next.js_15-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![API Gateway](https://img.shields.io/badge/Architecture-BFF_Gateway-FF6B6B?style=for-the-badge)](https://microservices.io/patterns/apigateway.html)
+[![Google Cloud & Gemini](https://img.shields.io/badge/AI-Gemini_%26_Cloud_APIs-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://deepmind.google/technologies/gemini/)
+[![Portfolio](https://img.shields.io/badge/Portfolio-yucelgumus.dev-2563EB?style=for-the-badge&logo=google-chrome&logoColor=white)](https://www.yucelgumus.dev/)
 
----
-
-## 🌟 Neden BFF? (Tasarım Deseni ve Güvenlik)
-
-GitHub Pages gibi statik hosting platformları, çevresel değişkenleri (`.env`) sadece derleme (build-time) aşamasında okuyabilir. Bu durum, istemci koduna gömülen tüm API anahtarlarının tarayıcı geliştirici araçları (Chrome DevTools Network tab) üzerinden kolayca çalınabilmesine yol açar.
-
-`pages-bff`, bu güvenlik zafiyetini ortadan kaldırır:
-1. İstemci (tarayıcı), doğrudan Gemini API Gateway'e istek göndermek yerine **BFF** sunucusuna istek gönderir.
-2. Vercel üzerinde çalışan BFF, server-side env içinde saklanan `GATEWAY_CLIENT_API_KEY` değerini isteğin başlığına (`X-API-Key`) ekler.
-3. İsteği asıl API sunucusuna (`https://api.yucelgumus.dev`) iletir ve yanıtı istemciye döndürür.
+> Birden fazla frontend web ve mobil uygulamasının (Harita, Analitik, Ses, Doküman, Cami Rehberi vb.) arka uç mikroservislerine ve yapay zeka sağlayıcılarına tek ve güvenli bir noktadan bağlanmasını sağlayan **Next.js 15 tabanlı Backend-For-Frontend (BFF) API Ağ Geçidi**.
 
 ---
 
-## 📦 Desteklenen Uygulamalar ve Rotalar
+## 🌟 Öne Çıkan Özellikler
 
-| Statik Uygulama (GitHub Pages) | BFF Rota Path | API Gateway Upstream Path |
-|--------------------------------|----------------|---------------------------|
-| 🗺️ [GeoGemini](https://yucel-gumus.github.io/GeoGemini/) | `POST /api/geo/recommend-place` | `POST /api/recommend-place` |
-| 🎤 [speech-to-text](https://yucel-gumus.github.io/speech-to-text/) | `POST /api/speech/transcribe` | `POST /api/transcribe` |
-| 🎤 [speech-to-text](https://yucel-gumus.github.io/speech-to-text/) | `POST /api/speech/polish` | `POST /api/polish` |
-| 🗺️ [gemini-mcp-maps](https://yucel-gumus.github.io/gemini-mcp-maps/) | `POST /api/maps/chat` *(SSE Stream)* | `POST /api/chat` |
+- 🛡️ **Merkezi Güvenlik & Proxy Ağ Geçidi:** İstemcilerin doğrudan API anahtarlarını (Google Gemini, Google Maps, GA4) görmesini engelleyen güvenli sunucu tarafı proxy katmanı (`lib/gateway.ts`).
+- 🗺️ **Mekansal & Harita Servisleri API:** Google Maps API proxy'si (`/api/maps/proxy`), yer önerisi (`/api/geo/recommend-place`) ve yüksek çözünürlüklü mekan fotoğrafları.
+- 📊 **Google Analytics & MCP Gateway:** GA4 verilerini doğal dilde sorgulayan mikroservislerle ön uç arasındaki iletişim köprüsü (`/api/analytics/ask`).
+- 🎙️ **Ses İşleme & Transkripsiyon:** Ses kayıtlarını metne çeviren (`/api/speech/transcribe`) ve Gemini ile metinleri düzelten/özetleyen (`/api/speech/polish`) API hattı.
+- 🕌 **Kültürel & Mekansal Zeka:** Cami ve tarihi mekan sohbet ve görsel servisleri (`/api/mosque/chat`, `/api/mosque/photo`).
+- ⚡ **Düşük Gecikme (Low Latency) & Edge Desteği:** Vercel ve Edge Runtime ile optimize edilmiş yanıt süreleri.
 
 ---
 
-## 🏗️ Mimarî ve Güvenlik Altyapısı
+## 🏗️ Mimari & API Rotaları
 
-### 1. CORS Origin Doğrulama & Whitelisting
-BFF, `PAGES_BFF_ALLOWED_ORIGINS` değişkeninde tanımlı olmayan kökenlerden (origins) gelen istekleri anında reddeder. Next.js Route Handlers içinde `OPTIONS` (preflight) istekleri ve CORS başlıkları dinamik olarak yönetilir.
-
-### 2. Akışkan SSE (Server-Sent Events) Stream Relay
-`gemini-mcp-maps` projesindeki yapay zeka cevapları haritaya SSE akışı olarak akar. BFF, gelen akışı belleğe biriktirmeden (non-buffering) anlık olarak tarayıcıya iletir:
-
-```
-[ Tarayıcı (Lit / SSE) ] ◄──(Relayed Stream)──► [ Next.js Route Handler (Vercel) ]
-                                                            │
-                                                   (Appends X-API-Key)
-                                                            ▼
-[ Gemini LLM API ] ◄──(EventSource Stream)── [ Python API Gateway (FastAPI) ]
+```mermaid
+graph TD
+    ClientApps[Frontend İstemciler: GeoGemini, GA4 Chat, Speech App, Mosque AI] -->|HTTPS İstekleri| BFF[Pages BFF Gateway Layer]
+    BFF -->|/api/maps/| MapsProxy[Google Maps & Geocoding APIs]
+    BFF -->|/api/analytics/| MCPService[Google Analytics 4 & MCP Engine]
+    BFF -->|/api/speech/| SpeechService[Audio & Whisper / Gemini Transcribe]
+    BFF -->|/api/geo/| GeoService[Places Photo & Recommendation Engine]
+    BFF -->|/api/mosque/| MosqueService[Mosque Intelligence Microservice]
 ```
 
 ---
 
-## 📂 Proje Klasör Yapısı
+## 📡 API Endpoint Referansı
 
-```
-pages-bff/
-├── app/
-│   ├── api/
-│   │   ├── geo/
-│   │   │   └── recommend-place/route.ts   # GeoGemini proxy rotası
-│   │   ├── maps/
-│   │   │   └── chat/route.ts              # SSE destekli Harita sohbet proxy'si
-│   │   └── speech/
-│   │       ├── transcribe/route.ts        # Ses transkripsiyon proxy'si
-│   │       └── polish/route.ts            # Metin düzenleme proxy'si
-├── lib/
-│   └── gateway.ts                         # Ortak proxy Fetch ve CORS yardımcı fonksiyonları
-├── next.config.ts
-├── tsconfig.json
-└── package.json
-```
+| Endpoint | Metot | Açıklama |
+| :--- | :--- | :--- |
+| `/api/maps/proxy/[...path]` | `GET / POST` | Harita tile ve Google Maps API güvenli proxy |
+| `/api/maps/chat` | `POST` | Harita rota ve mekan asistanı sohbeti |
+| `/api/analytics/ask` | `POST` | GA4 analitik sorgulama ağ geçidi |
+| `/api/geo/places/photo` | `GET` | Google Places görsel çekme servisi |
+| `/api/geo/recommend-place` | `POST` | Yapay zeka destekli mekan önerisi |
+| `/api/speech/transcribe` | `POST` | Ses dosyasını metne dönüştürme |
+| `/api/speech/polish` | `POST` | Transkripsiyon metnini yapay zeka ile düzeltme |
+| `/api/mosque/chat` | `POST` | Cami mimarisi ve tarihi hakkında AI sohbeti |
 
 ---
 
-## 🚀 Kurulum ve Yerel Çalıştırma
+## 🚀 Hızlı Başlangıç
 
-### 1. Bağımlılıkları Yükleyin
+### Gereksinimler
+- **Node.js**: v18.18+ veya v20+
+- Gerekli API anahtarları (Google AI Studio, Google Maps API)
+
+### Kurulum
+
 ```bash
 git clone https://github.com/yucel-gumus/pages-bff.git
 cd pages-bff
+
 npm install
 ```
 
-### 2. Ortam Değişkenleri (`.env.local`)
-Kök dizinde `.env.local` oluşturun:
+### Ortam Değişkenleri (`.env.local`)
 
 ```env
-# API Sunucu Adresi
-AI_API_URL=https://api.yucelgumus.dev
-
-# API Sunucu Erişim Anahtarı (Plain text olmalıdır, base64 değil)
-GATEWAY_CLIENT_API_KEY=your_client_api_key
-
-# İzin verilen istemci kökenleri (CORS whitelist)
-PAGES_BFF_ALLOWED_ORIGINS=https://yucel-gumus.github.io,http://localhost:5173,http://localhost:3000
+GEMINI_API_KEY=your_gemini_api_key
+GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+PYTHON_BACKEND_URL=https://your-backend-service-url.run.app
 ```
 
-### 3. Geliştirme Sunucusunu Başlatma
+### Çalıştırma
+
 ```bash
-# BFF yerel olarak 3099 portunda başlar (diğer projelerle çakışmaması için)
 npm run dev
 ```
 
 ---
 
-## 🔗 Canlı Bağlantılar
-* **Canlı BFF Adresi:** [https://pages-bff.vercel.app](https://pages-bff.vercel.app)
-* **API Gateway Kaynak Kodu:** [yucel-gumus/llm_api](https://github.com/yucel-gumus/llm_api)
+## 📂 Proje Dizin Yapısı
+
+```
+pages-bff/
+├── package.json
+├── tsconfig.json
+├── next.config.ts
+├── app/
+│   ├── layout.tsx
+│   ├── page.tsx
+│   └── api/
+│       ├── maps/                   # Harita ve rota proxy API'leri
+│       ├── geo/                    # Mekan fotoğrafları ve öneriler
+│       ├── analytics/              # Analitik ve MCP köprüsü
+│       ├── speech/                 # Ses işleme ve metin düzeltme
+│       └── mosque/                 # Cami rehber servisleri
+└── lib/
+    └── gateway.ts                  # Merkezi API istek yönlendiricisi
+```
+
+---
+
+## 📄 Lisans
+Bu proje [MIT Lisansı](LICENSE) ile lisanslanmıştır.
+
+---
+
+## 👨‍💻 Geliştirici & İletişim
+
+**Yücel Gümüş** - Full Stack Developer
+
+- 🌐 **Web Sitesi / Portfolyo:** [yucelgumus.dev](https://www.yucelgumus.dev/)
+- 💼 **LinkedIn:** [linkedin.com/in/yucel-gumus](https://www.linkedin.com/in/yucel-gumus/)
+- 🐙 **GitHub:** [@yucel-gumus](https://github.com/yucel-gumus)
+
+<p align="left">
+  <a href="https://www.yucelgumus.dev/" target="_blank" rel="noopener noreferrer">
+    <img src="https://img.shields.io/badge/Developed%20by-Yücel%20Gümüş-blue?style=for-the-badge&logo=google-chrome&logoColor=white" alt="Yücel Gümüş Portfolio" />
+  </a>
+</p>
